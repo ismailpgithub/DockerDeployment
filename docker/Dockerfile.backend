@@ -12,14 +12,20 @@
 
 # ================================================
 # Stage 1: Dependencies (maximize cache reuse)
+# ================================================
+# Stage 1: Dependencies (maximize cache reuse)
 FROM oven/bun:1 AS deps
 
 WORKDIR /app
 
-COPY bun.lockb package.json turbo.json ./
+# Copy only lockfile + root configs first → best caching
+COPY bun.lock package.json turbo.json ./
+
+# Copy only the backend package.json (and db if Prisma needs it)
 COPY apps/backend/package.json apps/backend/
 COPY packages/db/package.json packages/db/
 
+# Install all dependencies (including devDeps needed for generate/build)
 RUN bun install --frozen-lockfile
 
 # ================================================
@@ -32,12 +38,13 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/packages ./packages
 COPY --from=deps /app/apps/backend ./apps/backend
 
-COPY turbo.json package.json bun.lockb ./
+# Copy root-level files needed by turbo / bun
+COPY turbo.json package.json bun.lock ./
 
-# Copy Prisma schema from packages/db (this is the correct path!)
+# Copy Prisma schema from packages/db (correct path!)
 COPY packages/db/prisma ./prisma
 
-# Generate Prisma client
+# Generate Prisma client (only runs when schema changes)
 RUN bunx prisma generate
 
 WORKDIR /app/apps/backend
