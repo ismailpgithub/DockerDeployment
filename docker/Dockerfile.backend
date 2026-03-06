@@ -1,55 +1,55 @@
-# FROM oven/bun:1
-# WORKDIR /usr/src/app
-# COPY ./packages ./packages
-# COPY ./bun.lock ./bun.lock
-# COPY ./package.json ./package.json
-# COPY ./turbo.json ./turbo.json
-# COPY ./apps/backend ./apps/backend
-# RUN bun install
-# RUN bun run db:generate
-# EXPOSE 8000
-# CMD ["bun", "run", "start:backend"]
-
-
-# Stage 1: Dependencies
-FROM oven/bun:1 AS deps
-
-WORKDIR /app
-
-# Copy lockfile + root configs first
-COPY bun.lock package.json turbo.json ./
-
-# Copy workspace package.jsons for caching
-COPY apps/backend/package.json apps/backend/
-COPY packages/db/package.json packages/db/
-
-# Install everything (no --frozen-lockfile for local dev)
+FROM oven/bun:1
+WORKDIR /usr/src/app
+COPY ./packages ./packages
+COPY ./bun.lock ./bun.lock
+COPY ./package.json ./package.json
+COPY ./turbo.json ./turbo.json
+COPY ./apps/backend ./apps/backend
 RUN bun install
-
-# Stage 2: Runtime + Prisma generate using root script
-FROM oven/bun:1-slim AS runner
-
-WORKDIR /app
-
-# Copy everything needed from deps stage
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/packages ./packages
-COPY --from=deps /app/apps/backend ./apps/backend
-
-# Copy root files (turbo needs them)
-COPY turbo.json package.json bun.lock ./
-
-# Copy Prisma schema (correct path)
-COPY packages/db/prisma ./prisma
-
-# Now use your root-level script for Prisma generate
-# This calls the exact command from package.json
 RUN bun run db:generate
-
-# Switch to backend folder
-WORKDIR /app/apps/backend
-
 EXPOSE 8000
-
-# Use your root-level start script
 CMD ["bun", "run", "start:backend"]
+
+
+# # Stage 1: Dependencies
+# FROM oven/bun:1 AS deps
+
+# WORKDIR /app
+
+# # Copy lockfile + root configs first
+# COPY bun.lock package.json turbo.json ./
+
+# # Copy workspace package.jsons for caching
+# COPY apps/backend/package.json apps/backend/
+# COPY packages/db/package.json packages/db/
+
+# # Install everything (no --frozen-lockfile for local dev)
+# RUN bun install
+
+# # Stage 2: Runtime + Prisma generate using root script
+# FROM oven/bun:1-slim AS runner
+
+# WORKDIR /app
+
+# # Copy everything needed from deps stage
+# COPY --from=deps /app/node_modules ./node_modules
+# COPY --from=deps /app/packages ./packages
+# COPY --from=deps /app/apps/backend ./apps/backend
+
+# # Copy root files (turbo needs them)
+# COPY turbo.json package.json bun.lock ./
+
+# # Copy Prisma schema (correct path)
+# COPY packages/db/prisma ./prisma
+
+# # Now use your root-level script for Prisma generate
+# # This calls the exact command from package.json
+# RUN bun run db:generate
+
+# # Switch to backend folder
+# WORKDIR /app/apps/backend
+
+# EXPOSE 8000
+
+# # Use your root-level start script
+# CMD ["bun", "run", "start:backend"]
