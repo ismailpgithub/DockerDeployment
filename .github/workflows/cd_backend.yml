@@ -22,5 +22,4 @@ jobs:
           file: ./docker/Dockerfile.backend
           push: true
           tags: dev/app-backend:${{ github.sha }}
-
       
